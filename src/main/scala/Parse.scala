@@ -69,12 +69,11 @@ object Parse {
       })
     */
       head.instructions.last match {
-        case Return => {
+        case Return =>
           if (stack.head.data.signature != head.method.signature) {
             println("WARNING: Pop doesn't match push")
           }
           stack.pop()
-        }
         case _ => ;
       }
 
