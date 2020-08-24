@@ -226,7 +226,7 @@ object BytecodeDumpParser {
   def parseFileStream(source: Source): Iterator[Try[TraceLine]] = {
     source.getLines()
       .zipWithIndex
-      .filter(p => !p._1.isBlank)
+      .filter(p => p._1.trim.length > 0)
       .map(p => parseTraceLine(p._1).transform(
         s => Success(s),
         e => Failure(FileParsingError(p._2, e))))
