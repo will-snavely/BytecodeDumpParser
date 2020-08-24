@@ -105,7 +105,7 @@ object Parse {
     buffer.toList
   }
 
-  def gis(s: String) = new GZIPInputStream(new BufferedInputStream(new FileInputStream(s)))
+  def inputStream(s: String) = new BufferedInputStream(new FileInputStream(s))
 
   def main(args: Array[String]): Unit = {
     if (args.length != 1) {
@@ -118,7 +118,7 @@ object Parse {
     codec.onMalformedInput(CodingErrorAction.REPLACE)
     codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
 
-    val source = Source.fromInputStream(gis(args(0)))
+    val source = Source.fromInputStream(inputStream(args(0)))
     val treeOutput = new FileWriter("tree.json")
     try {
       val trace = BytecodeDumpParser.parseFileStream(source)
@@ -126,8 +126,7 @@ object Parse {
         .map(_.get)
         .toList
       val blocks = buildBlocks(trace)
-      val tree = buildCallTree(
-        sliceBlocksFrom(blocks, "TestProgram$.profileMain(jobject)"))
+      val tree = buildCallTree(blocks)
       write(flatten(tree), treeOutput)
     } finally {
       source.close()
