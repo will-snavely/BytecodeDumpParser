@@ -108,8 +108,8 @@ object Parse {
   def inputStream(s: String) = new BufferedInputStream(new FileInputStream(s))
 
   def main(args: Array[String]): Unit = {
-    if (args.length != 1) {
-      System.err.println("Usage: Parse <dump_path>")
+    if (args.length != 2) {
+      System.err.println("Usage: Parse <dump_path> <out>")
       System.exit(-1)
     }
 
@@ -119,7 +119,7 @@ object Parse {
     codec.onUnmappableCharacter(CodingErrorAction.REPLACE)
 
     val source = Source.fromInputStream(inputStream(args(0)))
-    val treeOutput = new FileWriter("tree.json")
+    val treeOutput = new FileWriter(args(1))
     try {
       val trace = BytecodeDumpParser.parseFileStream(source)
         .filter(_.isSuccess)
