@@ -74,7 +74,7 @@ object BuildTree {
       })
 
       head.instructions.last match {
-        case Return =>
+        case _: ReturnInst =>
           if (stack.head.data.signature != head.method.signature) {
             System.err.println("WARNING: Pop doesn't match push")
           }
