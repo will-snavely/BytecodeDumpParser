@@ -1,19 +1,21 @@
 import java.io.{BufferedInputStream, FileInputStream, FileReader, PrintWriter}
 import java.util.zip.GZIPInputStream
 
-import model.{CallData, CallTree, FlatNode, NaryTree}
+import model.{CallData, CallTree, ConstantInt, Expression, FlatNode, NaryTree}
 import org.json4s._
 import org.json4s.native.Serialization.read
 
 import scala.collection.mutable
 
-class AccData
-(
-  val signature: String,
-  var totalInstructions: Int = 0,
-  var totalCalls: Int = 0,
-  var callsPerFunction: mutable.HashMap[String, Int] = mutable.HashMap()
-)
+class VariableSum {
+  var constantPart: Int = 0
+  val variables: mutable.Map[String, Int] = new mutable.HashMap().withDefaultValue(0)
+}
+
+class AccData(val signature: String) {
+  val totalInstructions: VariableSum = new VariableSum()
+  val totalCalls: VariableSum = new VariableSum()
+}
 
 object Analyze {
   implicit val jsonDefaultFormats: DefaultFormats.type = DefaultFormats
@@ -33,22 +35,20 @@ object Analyze {
 
   def accumulate(tree: NaryTree[CallData]): NaryTree[AccData] = {
     val newTree = new NaryTree(new AccData(tree.data.signature))
-    newTree.data.totalInstructions = tree.data.instructionCount
+    newTree.data.totalInstructions.constantPart = tree.data.instructionCount
     tree.children.foreach(child => {
       val newChild = accumulate(child)
       newTree.children.append(newChild)
-      newTree.data.callsPerFunction.update(
-        child.data.signature,
-        newTree.data.callsPerFunction.getOrElse(child.data.signature, 0) + 1
-      )
-      newTree.data.totalInstructions += newChild.data.totalInstructions
-      newTree.data.totalCalls += (1 + newChild.data.totalCalls)
-      newChild.data.callsPerFunction.foreachEntry((sig, count) => {
-        newTree.data.callsPerFunction.update(
-          sig,
-          newTree.data.callsPerFunction.getOrElse(sig, 0) + count
-        )
-      })
+      if (child.data.isStub) {
+        val sig = child.data.signature
+        val instMap = newTree.data.totalInstructions.variables
+        val callMap = newTree.data.totalCalls.variables
+        instMap.update(sig, instMap(sig) + 1)
+        callMap.update(sig, callMap(sig) + 1)
+      } else {
+        newTree.data.totalInstructions.constantPart += newChild.data.totalInstructions.constantPart
+        newTree.data.totalCalls.constantPart += (1 + newChild.data.totalCalls.constantPart)
+      }
     })
     newTree
   }
@@ -75,7 +75,7 @@ object Analyze {
       accumulate(tree).visitAtDepth((data, depth) => {
         indent(depth, accFile)
         accFile.println(data.signature, data.totalCalls, data.totalInstructions)
-        data.callsPerFunction.foreachEntry((sig, count) => {
+        data.callsPerFunction.foreach((sig, count: Int) => {
           indent(depth, accFile)
           accFile.println("%s: %d".format(sig, count))
         })
