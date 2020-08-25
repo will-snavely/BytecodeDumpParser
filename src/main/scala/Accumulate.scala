@@ -1,7 +1,7 @@
 import java.io.{BufferedInputStream, FileInputStream, FileReader, PrintWriter}
 import java.util.zip.GZIPInputStream
 
-import model.{CallData, CallTree, ConstantInt, Expression, FlatNode, NaryTree}
+import model.{CallData, CallTree, FlatNode, NaryTree}
 import org.json4s._
 import org.json4s.native.Serialization.read
 
@@ -74,11 +74,14 @@ object Analyze {
       })
       accumulate(tree).visitAtDepth((data, depth) => {
         indent(depth, accFile)
-        accFile.println(data.signature, data.totalCalls, data.totalInstructions)
-        data.callsPerFunction.foreach((sig, count: Int) => {
-          indent(depth, accFile)
-          accFile.println("%s: %d".format(sig, count))
+        accFile.println(data.signature)
+        indent(depth + 1, accFile)
+        accFile.print(data.totalCalls.constantPart)
+        data.totalCalls.variables.foreach(item => {
+          accFile.print(" + ")
+          accFile.print("(%s * %s)", item._1, item._2)
         })
+        accFile.println()
       })
     } finally {
       treeFile.close()
