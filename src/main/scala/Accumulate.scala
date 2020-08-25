@@ -38,7 +38,7 @@ object Accumulate {
     newTree.data.totalInstructions.constantPart = tree.data.instructionCount
     tree.children.foreach(child => {
       val newChild = accumulate(child)
-      newTree.children.append(newChild)
+
       if (child.data.isStub) {
         val sig = child.data.signature
         val instMap = newTree.data.totalInstructions.variables
@@ -46,6 +46,7 @@ object Accumulate {
         instMap.update(sig, instMap(sig) + 1)
         callMap.update(sig, callMap(sig) + 1)
       } else {
+        newTree.children.append(newChild)
         newTree.data.totalInstructions.constantPart += newChild.data.totalInstructions.constantPart
         newTree.data.totalCalls.constantPart += (1 + newChild.data.totalCalls.constantPart)
       }
@@ -79,7 +80,7 @@ object Accumulate {
         accFile.print(data.totalCalls.constantPart)
         data.totalCalls.variables.foreach(item => {
           accFile.print(" + ")
-          accFile.print("(%s * %s)", item._1, item._2)
+          accFile.print("(%s * %s)".format(item._1, item._2))
         })
         accFile.println()
       })
