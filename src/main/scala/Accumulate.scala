@@ -17,7 +17,7 @@ class AccData(val signature: String) {
   val totalCalls: VariableSum = new VariableSum()
 }
 
-object Analyze {
+object Accumulate {
   implicit val jsonDefaultFormats: DefaultFormats.type = DefaultFormats
 
   val denyList = List(
