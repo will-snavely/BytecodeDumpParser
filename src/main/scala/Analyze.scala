@@ -1,11 +1,11 @@
-import java.io.{BufferedInputStream, FileInputStream, FileReader, FileWriter, PrintWriter}
+import java.io.{BufferedInputStream, FileInputStream, FileReader, PrintWriter}
 import java.util.zip.GZIPInputStream
-import scala.collection.mutable
 
+import model.{CallData, CallTree, FlatNode, NaryTree}
 import org.json4s._
 import org.json4s.native.Serialization.read
 
-import model.{CallData, FlatNode, NaryTree}
+import scala.collection.mutable
 
 class AccData
 (
@@ -53,19 +53,6 @@ object Analyze {
     newTree
   }
 
-  def fromFlatList(nodes: List[FlatNode]): NaryTree[CallData] = {
-    if (nodes.isEmpty) {
-      new NaryTree(new CallData("<root>"))
-    }
-    val nodeMap = mutable.HashMap[Int, NaryTree[CallData]]()
-    nodes.foreach(node => {
-      val tree = new NaryTree(new CallData(node.s, node.c))
-      nodeMap.get(node.p).map(_.children.append(tree))
-      nodeMap.put(node.i, tree)
-    })
-    nodeMap.getOrElse(0, throw new Exception("Can't find expected root element."))
-  }
-
   def gis(s: String) = new GZIPInputStream(new BufferedInputStream(new FileInputStream(s)))
 
   def main(args: Array[String]): Unit = {
@@ -76,7 +63,7 @@ object Analyze {
 
     val reader = new FileReader(args(0))
     val nodeList = read[List[FlatNode]](reader)
-    val tree = fromFlatList(nodeList)
+    val tree = CallTree.fromFlatList(nodeList)
     val treeFile = new PrintWriter("tree.txt")
     val accFile = new PrintWriter("acc.txt")
 

@@ -34,7 +34,10 @@ object BytecodeDumpParser {
       case r"<unresolved klass at (\d*)${at}>" =>
         Success(UnresolvedHint(at))
       case r"<(.*)${cls}\.(.*)${method}(\(.*\).*)${desc}>" =>
-        Success(MethodHint(className = cls, methodName = method, descriptor = desc))
+        Success(MethodHint(
+          className = cls.replace("/", "."),
+          name = method,
+          descriptor = desc))
       case r"<(.*)${cls}\.([^/]*)${field}(/.*)${desc}>" =>
         Success(FieldHint(className = cls, fieldName = field, descriptor = desc))
       case r"<(.*)${name}>" =>

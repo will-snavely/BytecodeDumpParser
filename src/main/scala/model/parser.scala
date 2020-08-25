@@ -2,7 +2,7 @@ package model
 
 trait ResolutionHint
 case class UnresolvedHint(at: String) extends ResolutionHint
-case class MethodHint(className: String, methodName: String, descriptor: String) extends ResolutionHint
+case class MethodHint(className: String, name: String, descriptor: String) extends ResolutionHint
 case class FieldHint(className: String, fieldName: String, descriptor: String) extends ResolutionHint
 case class TypeHint(name: String) extends ResolutionHint
 
@@ -82,7 +82,7 @@ case class New(operand: ConstantPoolIndex) extends Unary
 case class CheckCast(operand: ConstantPoolIndex) extends Unary
 case class InstanceOf(operand: ConstantPoolIndex) extends Unary
 
-trait Invoke extends Unary
+trait Invoke extends Unary { val operand: ConstantPoolIndex }
 case class InvokeStatic(operand: ConstantPoolIndex) extends Invoke
 case class InvokeVirtual(operand: ConstantPoolIndex) extends Invoke
 case class InvokeSpecial(operand: ConstantPoolIndex) extends Invoke

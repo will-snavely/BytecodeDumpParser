@@ -1,17 +1,16 @@
 import java.io.{BufferedInputStream, FileInputStream, FileWriter}
 import java.nio.charset.CodingErrorAction
-import java.util.zip.GZIPInputStream
+
+import model._
+import org.json4s._
+import org.json4s.native.Serialization.write
+import parser._
+
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.io.{Codec, Source}
 
-import org.json4s._
-import org.json4s.native.Serialization.write
-
-import parser._
-import model._
-
-object Parse {
+object BuildTree {
   def buildBlocks(trace: List[TraceLine]): IndexedSeq[Block] = {
     val result = ListBuffer[Block]()
     var cur = trace
@@ -42,7 +41,7 @@ object Parse {
   def buildCallTree(blocks: IndexedSeq[Block]): NaryTree[CallData] = {
     var blockHead = blocks
     val stack = new mutable.Stack[NaryTree[CallData]]()
-    val root = new NaryTree(new CallData("<root>"))
+    val root = new NaryTree(new CallData("<root>", false))
 
     stack.push(root)
     var prevBlock: Option[Block] = None
@@ -53,25 +52,31 @@ object Parse {
       val parent = stack.head
 
       if (head.method.signature != parent.data.signature) {
-        val child = new NaryTree(new CallData(method.signature))
+        val child = new NaryTree(new CallData(method.signature, false))
         parent.children.prepend(child)
         stack.push(child)
       } else {
         parent.data.instructionCount += head.instructions.length
       }
 
-      /*
-      head.instructions.slice(0, head.instructions.length-1).foreach(inst => {
-        if(inst.opcode.isInvoke) {
-          val child = new NaryTree(new CallData(method.signature))
-          parent.children.prepend(child)
-        }
+      head.instructions.slice(0, head.instructions.length - 1).foreach({
+        case invoke: Invoke =>
+          invoke.operand.hint.map({
+            case m: MethodHint =>
+              parent.children.prepend(
+                new NaryTree(
+                  new CallData("%s%s".format(m.name, m.descriptor), true)))
+            case _ => ;
+          })
+          parent.children.prepend(
+            new NaryTree(new CallData(method.signature, true)))
+        case _ => ;
       })
-    */
+
       head.instructions.last match {
         case Return =>
           if (stack.head.data.signature != head.method.signature) {
-            println("WARNING: Pop doesn't match push")
+            System.err.println("WARNING: Pop doesn't match push")
           }
           stack.pop()
         case _ => ;
@@ -85,24 +90,6 @@ object Parse {
     stack.foreach(item => println(item.data.signature))
 
     root
-  }
-
-  def flatten(tree: NaryTree[CallData]): List[FlatNode] = {
-    val queue = mutable.Queue[(NaryTree[CallData], Int)]()
-    val buffer = ListBuffer[FlatNode]()
-    var id = 0
-    queue.enqueue((tree, -1))
-    while (queue.nonEmpty) {
-      val curId = id
-      id += 1
-      queue.dequeue() match {
-        case (node, parent) =>
-          buffer.append(
-            FlatNode(curId, node.data.signature, node.data.instructionCount, parent))
-          node.children.foreach(child => queue.enqueue((child, curId)))
-      }
-    }
-    buffer.toList
   }
 
   def inputStream(s: String) = new BufferedInputStream(new FileInputStream(s))
@@ -127,7 +114,7 @@ object Parse {
         .toList
       val blocks = buildBlocks(trace)
       val tree = buildCallTree(blocks)
-      write(flatten(tree), treeOutput)
+      write(CallTree.flatten(tree), treeOutput)
     } finally {
       source.close()
       treeOutput.close()
