@@ -45,7 +45,7 @@ case class FlatNode(
                    )
 
 object CallTree {
-  def toInt(b: Boolean): Int = {
+  def toInt(b: Boolean): Int = b match {
     case true => 1
     case false => 0
   }
