@@ -163,24 +163,6 @@ object BytecodeDumpParser {
       case "lshl" => Success(LShl)
       case "lushl" => Success(LUShl)
       case _ => Success(Other(raw.opcode, raw.operands))
-      /*
-      case "new" => parseConstPoolIdx(raw.operands).map(New)
-      case "checkcast" => parseConstPoolIdx(raw.operands).map(CheckCast)
-      case "instanceof" => parseConstPoolIdx(raw.operands).map(InstanceOf)
-      case r"[a]?ldc.*" | "bipush" | "sipush" =>
-      case "arraylength" | "anewarray" | "newarray" =>
-      case "multianewarray" =>
-      case r"[dialf]store" | r"[dialf]load" =>
-      case r".*store_\d" | r".*load_\d" | r".*access_.*" | r".*const_.*" =>
-      case r"[abci]aload" | r"[abci]astore" =>
-      case r".2." | r"dup.*" =>
-      case r".inc" | r"pop\d?" =>
-      case r".xor" | r".neg" | r".and" | r".or" =>
-      case "monitorenter" | "monitorexit" =>
-      case r".cmp[gl]?" =>
-      case r"if.*" | "goto" =>
-      case r"[dial]?getfield.*" | r"[dial]?putfield.*" | "putstatic" | "getstatic" =>
-      */
     }
   }
 

@@ -6,7 +6,6 @@ import org.json4s._
 import org.json4s.native.Serialization.write
 import parser._
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.io.{Codec, Source}
 
@@ -38,51 +37,60 @@ object BuildTree {
       case index => blocks.slice(index, blocks.length)
     }
 
+  def formatMethodHint(hint: MethodHint): String = {
+    "%s.%s%s".format(
+      hint.className.replace("/", ".'"),
+      hint.name,
+      hint.descriptor
+    )
+  }
+
+  def addStubs(node: NaryTree[CallData], block: Block): Unit = {
+    block.instructions.slice(0, block.instructions.length - 1).foreach({
+      case invoke: Invoke =>
+        invoke.operand.hint.foreach({
+          case m: MethodHint =>
+            node.children.prepend(
+              new NaryTree(new CallData(formatMethodHint(m), true)))
+          case _ => ;
+        })
+      case _ => ;
+    })
+  }
+
   def buildCallTree(blocks: IndexedSeq[Block]): NaryTree[CallData] = {
     var blockHead = blocks
-    val stack = new mutable.Stack[NaryTree[CallData]]()
+    var stack = List[NaryTree[CallData]]()
     val root = new NaryTree(new CallData("<root>", false))
 
-    stack.push(root)
+    stack = root +: stack
     var prevBlock: Option[Block] = None
 
     while (blockHead.nonEmpty && stack.nonEmpty) {
-      val head = blockHead.head
-      val method = head.method
+      val curBlock = blockHead.head
+      val method = curBlock.method
       val parent = stack.head
 
-      if (head.method.signature != parent.data.signature) {
+      if (method.signature != parent.data.signature) {
         val child = new NaryTree(new CallData(method.signature, false))
         parent.children.prepend(child)
-        stack.push(child)
+        stack = child +: stack
+        addStubs(child, curBlock)
       } else {
-        parent.data.instructionCount += head.instructions.length
+        parent.data.instructionCount += curBlock.instructions.length
+        addStubs(parent, curBlock)
       }
 
-      head.instructions.slice(0, head.instructions.length - 1).foreach({
-        case invoke: Invoke =>
-          invoke.operand.hint.map({
-            case m: MethodHint =>
-              parent.children.prepend(
-                new NaryTree(
-                  new CallData("%s%s".format(m.name, m.descriptor), true)))
-            case _ => ;
-          })
-          parent.children.prepend(
-            new NaryTree(new CallData(method.signature, true)))
-        case _ => ;
-      })
-
-      head.instructions.last match {
+      curBlock.instructions.last match {
         case _: ReturnInst =>
-          if (stack.head.data.signature != head.method.signature) {
+          if (stack.head.data.signature != method.signature) {
             System.err.println("WARNING: Pop doesn't match push")
           }
-          stack.pop()
+          stack = stack.tail
         case _ => ;
       }
 
-      prevBlock = Some(head)
+      prevBlock = Some(curBlock)
       blockHead = blockHead.tail
     }
 

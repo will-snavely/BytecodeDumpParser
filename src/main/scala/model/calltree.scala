@@ -2,6 +2,7 @@ package model
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.util.{Failure, Success, Try}
 
 class NaryTree[A](val data: A) {
   val children: ListBuffer[NaryTree[A]] = ListBuffer()
@@ -20,21 +21,42 @@ class NaryTree[A](val data: A) {
     }
   }
 
-  def find(p: A => Boolean): Option[NaryTree[A]] = {
+  def find(p: A => Boolean): Try[NaryTree[A]] = {
     val stack = new mutable.Stack[NaryTree[A]]()
     stack.push(this)
     while (stack.nonEmpty) {
       val tree = stack.pop()
       if (p(tree.data)) {
-        return Some(tree)
+        return Success(tree)
       }
       tree.children.foreach(child => {
         stack.push(child)
       })
     }
-    None
+    Failure(new NoSuchElementException())
+  }
+
+  def findAll(p: A => Boolean): Try[List[NaryTree[A]]] = {
+    val stack = new mutable.Stack[NaryTree[A]]()
+    val result = ListBuffer[NaryTree[A]]()
+    stack.push(this)
+    while (stack.nonEmpty) {
+      val tree = stack.pop()
+      if (p(tree.data)) {
+        result.append(tree)
+      }
+      tree.children.foreach(child => {
+        stack.push(child)
+      })
+    }
+    if (result.toList.isEmpty) {
+      Failure(new NoSuchElementException())
+    } else {
+      Success(result.toList)
+    }
   }
 }
+
 
 case class FlatNode(
                      i: Int, // Unique Node ID
